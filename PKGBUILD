@@ -1,28 +1,29 @@
 # Maintainer: Estela ad Astra <i@estela.cn>
 
 pkgbase=linux-515-starfive-visionfive2
-pkgver=5.15.96
+_variant=VF2
+pkgver=2.10.4
+epoch=1 #Change to use ver from StarFive's SDK
 pkgrel=1
-_tag=VF2_v2.6.0
-_srcname=linux-$_tag
-
+_tag=VF2_v${pkgver}
 _desc='Linux 5.15 for StarFive RISC-V VisionFive 2 Board'
+_srcname=linux-$_tag
 url="https://github.com/starfive-tech/linux/"
 arch=(riscv64)
 license=(GPL2)
 makedepends=(bc libelf pahole cpio perl tar xz)
 options=('!strip')
 source=("https://github.com/starfive-tech/linux/archive/refs/tags/${_tag}.tar.gz"
-  "https://cdn.kernel.org/pub/linux/kernel/v5.x/patch-${pkgver}.xz"
+  "0001-csr-fix.patch::https://github.com/torvalds/linux/commit/6df2a016c0c8a3d0933ef33dd192ea6606b115e3.diff"
   'config'
   'linux.preset'
   '90-linux.hook')
 
-sha256sums=('a56fd7a684998f13667253b5a0a7af073322f87ad553c9498700013898040ee9'
-            '23726cf33834f5d49ce31837ec552e1aff6c2833d7c1a93c15f6f9f83933dccb'
-            'e639088bfc6c09e5af0e4cd5f9cbc9463bdce0355a6d84e968383316494bcae8'
-            '57acae869144508c5600d6c8f41664f073f731c40cad2c58d2a1d55240495ddb'
-            '5308a6dcabff290c627cab5c9db23c739eddbf7aa8a4984468ed59e6a5250702')
+sha256sums=('5614f50f29fd4aa56525e0b002b5b03ef4109ef92484aab6747516efd2fb213b'
+  '3459b3799b7f9b7d6129ca8996c40d6a12f89127fe54b4af99ec9512b711dced'
+  '2fa9ceec6bf8dd882945a5fc5141ef47f1f04f4dffe2c0884c16af3f37f7c45e'
+  '57acae869144508c5600d6c8f41664f073f731c40cad2c58d2a1d55240495ddb'
+  '5308a6dcabff290c627cab5c9db23c739eddbf7aa8a4984468ed59e6a5250702')
 
 if [ $(uname -m) != riscv64 ]; then
   shopt -s expand_aliases
@@ -33,13 +34,18 @@ fi
 prepare() {
   cd $_srcname
 
-  echo "Applying patch $src..."
-  patch -Np1 <"../patch-${pkgver}" || echo fuck
+  local src
+  for src in $(ls ../); do
+    [[ $src = *.patch ]] || continue
+    echo "Applying patch $src..."
+    patch -Np1 <"../$src"
+  done
 
   echo "Setting version..."
   scripts/setlocalversion --save-scmversion
-  echo "-$pkgrel" >localversion.10-pkgrel
-  echo "${pkgbase#linux}" >localversion.20-pkgname
+  echo "-${_variant}" >localversion.10-variant
+  echo "-${pkgver}" >localversion.20-pkgver
+  echo "-$pkgrel" >localversion.30-pkgrel
 
   echo "Setting config..."
   cp ../config .config
